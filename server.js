@@ -1,12 +1,15 @@
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 app.use(express.json());
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/send-message', (req, res) => {
     const { message } = req.body;
