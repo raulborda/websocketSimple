@@ -1,17 +1,17 @@
 {
   "name": "6-websocketssimple",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "Demo de WebSockets bidireccional con Express y ws",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node --watch server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.19.2",
-    "socket.io": "^4.7.5",
-    "ws": "^8.17.0"
+    "express": "^5.2.1",
+    "ws": "^8.20.1"
   }
 }
