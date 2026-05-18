@@ -53,7 +53,7 @@ WS_URL=ws://otro-host:3000 node client.js
 POST http://localhost:3000/send-message
 Content-Type: application/json
 
-{ "message": "Hola desde afuera" }
+{ "text": "Hola desde afuera" }
 ```
 
 El servidor recibe el mensaje y lo distribuye a todos los clientes WebSocket conectados.
@@ -63,7 +63,7 @@ Con curl:
 ```bash
 curl -X POST http://localhost:3000/send-message \
   -H "Content-Type: application/json" \
-  -d '{"message": "Hola desde curl"}'
+  -d '{"text": "Hola desde curl"}'
 ```
 
 ### Ver clientes conectados
