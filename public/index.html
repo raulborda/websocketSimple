@@ -163,6 +163,7 @@
 
             ws.onmessage = ({ data }) => {
                 const { type, text } = JSON.parse(data);
+                if (type === 'stats') return;
                 if (type === 'info') addMessage(text, 'info');
                 else addMessage(text, 'other');
             };

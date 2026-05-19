@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Dashboard</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0f;
+            color: #e2e8f0;
+            min-height: 100dvh;
+            padding: 1.5rem;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        header h1 { font-size: 1rem; color: #22d3ee; letter-spacing: 0.1em; text-transform: uppercase; }
+
+        #status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            box-shadow: 0 0 6px #ef4444;
+            flex-shrink: 0;
+        }
+        #status-dot.on { background: #22c55e; box-shadow: 0 0 6px #22c55e; animation: pulse 2s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1rem;
+        }
+
+        .card {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #475569;
+            margin-bottom: 1rem;
+        }
+
+        /* OS info */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .info-item label {
+            display: block;
+            font-size: 0.65rem;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 2px;
+        }
+
+        .info-item span {
+            font-size: 0.9rem;
+            color: #22d3ee;
+        }
+
+        /* Uptime */
+        #uptime { color: #a78bfa; }
+
+        /* CPU cores */
+        .cpu-model {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-bottom: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .core-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .core-label {
+            font-size: 0.65rem;
+            color: #475569;
+            width: 2.5rem;
+            flex-shrink: 0;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 10px;
+            background: #1e293b;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.8s ease;
+            background: linear-gradient(90deg, #22d3ee, #3b82f6);
+        }
+
+        .bar-fill.hot  { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+        .bar-fill.warm { background: linear-gradient(90deg, #22d3ee, #a78bfa); }
+
+        .core-pct {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            width: 2.5rem;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        /* Memory */
+        .mem-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #475569;
+            margin-bottom: 0.5rem;
+        }
+
+        .mem-bar-track {
+            height: 16px;
+            background: #1e293b;
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        .mem-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.8s ease;
+            background: linear-gradient(90deg, #22d3ee, #a78bfa);
+        }
+
+        .mem-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .mem-stat label {
+            display: block;
+            font-size: 0.6rem;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .mem-stat span { font-size: 0.85rem; color: #e2e8f0; }
+
+        /* CPU history sparkline */
+        canvas { width: 100%; height: 80px; display: block; }
+    </style>
+</head>
+<body>
+    <header>
+        <div id="status-dot"></div>
+        <h1>System Dashboard</h1>
+    </header>
+
+    <div class="grid">
+        <!-- OS Info -->
+        <div class="card">
+            <div class="card-title">Sistema Operativo</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Hostname</label>
+                    <span id="hostname">—</span>
+                </div>
+                <div class="info-item">
+                    <label>Plataforma</label>
+                    <span id="platform">—</span>
+                </div>
+                <div class="info-item">
+                    <label>Arquitectura</label>
+                    <span id="arch">—</span>
+                </div>
+                <div class="info-item">
+                    <label>Uptime</label>
+                    <span id="uptime">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memoria -->
+        <div class="card">
+            <div class="card-title">Memoria RAM</div>
+            <div class="mem-labels">
+                <span id="mem-pct">—</span>
+                <span id="mem-total">—</span>
+            </div>
+            <div class="mem-bar-track">
+                <div class="mem-bar-fill" id="mem-bar" style="width:0%"></div>
+            </div>
+            <div class="mem-stats">
+                <div class="mem-stat">
+                    <label>Usada</label>
+                    <span id="mem-used">—</span>
+                </div>
+                <div class="mem-stat">
+                    <label>Libre</label>
+                    <span id="mem-free">—</span>
+                </div>
+                <div class="mem-stat">
+                    <label>Total</label>
+                    <span id="mem-total2">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CPU Cores -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <div class="card-title">CPU por núcleo</div>
+            <div class="cpu-model" id="cpu-model">—</div>
+            <div id="cores"></div>
+        </div>
+
+        <!-- Historial CPU -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <div class="card-title">Historial CPU promedio (últimos 60s)</div>
+            <canvas id="chart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const MAX_HISTORY = 60;
+        const history = [];
+
+        function gb(bytes) {
+            return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+        }
+
+        function mb(bytes) {
+            return Math.round(bytes / 1024 / 1024) + ' MB';
+        }
+
+        function fmtUptime(secs) {
+            const d = Math.floor(secs / 86400);
+            const h = Math.floor((secs % 86400) / 3600);
+            const m = Math.floor((secs % 3600) / 60);
+            const s = Math.floor(secs % 60);
+            return [d && `${d}d`, h && `${h}h`, m && `${m}m`, `${s}s`].filter(Boolean).join(' ');
+        }
+
+        function colorClass(pct) {
+            if (pct >= 80) return 'hot';
+            if (pct >= 50) return 'warm';
+            return '';
+        }
+
+        function renderCores(cores) {
+            const container = document.getElementById('cores');
+            if (container.children.length !== cores.length) {
+                container.innerHTML = cores.map((_, i) => `
+                    <div class="core-row">
+                        <span class="core-label">core ${i}</span>
+                        <div class="bar-track"><div class="bar-fill" id="core-${i}" style="width:0%"></div></div>
+                        <span class="core-pct" id="pct-${i}">0%</span>
+                    </div>
+                `).join('');
+            }
+            cores.forEach((pct, i) => {
+                const bar = document.getElementById(`core-${i}`);
+                bar.style.width = pct + '%';
+                bar.className = 'bar-fill ' + colorClass(pct);
+                document.getElementById(`pct-${i}`).textContent = pct + '%';
+            });
+        }
+
+        function renderChart() {
+            const canvas = document.getElementById('chart');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth * devicePixelRatio;
+            canvas.height = 80 * devicePixelRatio;
+            ctx.scale(devicePixelRatio, devicePixelRatio);
+
+            const w = canvas.offsetWidth;
+            const h = 80;
+            ctx.clearRect(0, 0, w, h);
+
+            if (history.length < 2) return;
+
+            // Grid lines
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            [25, 50, 75].forEach(pct => {
+                const y = h - (pct / 100) * h;
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            });
+
+            // Line
+            const step = w / (MAX_HISTORY - 1);
+            ctx.beginPath();
+            history.forEach((val, i) => {
+                const x = i * step;
+                const y = h - (val / 100) * h;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            });
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Fill
+            ctx.lineTo((history.length - 1) * step, h);
+            ctx.lineTo(0, h);
+            ctx.closePath();
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, 'rgba(34,211,238,0.25)');
+            grad.addColorStop(1, 'rgba(34,211,238,0)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+        }
+
+        function update(data) {
+            // OS
+            document.getElementById('hostname').textContent = data.os.hostname;
+            document.getElementById('platform').textContent = data.os.platform;
+            document.getElementById('arch').textContent = data.os.arch;
+            document.getElementById('uptime').textContent = fmtUptime(data.os.uptime);
+
+            // CPU
+            document.getElementById('cpu-model').textContent = data.cpu.model;
+            renderCores(data.cpu.cores);
+
+            const avg = Math.round(data.cpu.cores.reduce((a, b) => a + b, 0) / data.cpu.cores.length);
+            history.push(avg);
+            if (history.length > MAX_HISTORY) history.shift();
+            renderChart();
+
+            // Memoria
+            const pct = Math.round(data.mem.used / data.mem.total * 100);
+            document.getElementById('mem-pct').textContent = pct + '% usada';
+            document.getElementById('mem-total').textContent = gb(data.mem.total);
+            document.getElementById('mem-bar').style.width = pct + '%';
+            document.getElementById('mem-used').textContent = gb(data.mem.used);
+            document.getElementById('mem-free').textContent = gb(data.mem.free);
+            document.getElementById('mem-total2').textContent = gb(data.mem.total);
+        }
+
+        function connect() {
+            const ws = new WebSocket(`ws://${location.host}`);
+            const dot = document.getElementById('status-dot');
+
+            ws.onopen = () => dot.className = 'on';
+            ws.onclose = () => { dot.className = ''; setTimeout(connect, 3000); };
+            ws.onerror = () => ws.close();
+
+            ws.onmessage = ({ data }) => {
+                const msg = JSON.parse(data);
+                if (msg.type === 'stats') update(msg);
+            };
+        }
+
+        connect();
+        window.addEventListener('resize', renderChart);
+    </script>
+</body>
+</html>

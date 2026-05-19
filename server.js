@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
+const os = require('os');
 
 const app = express();
 const server = http.createServer(app);
@@ -80,6 +81,48 @@ wss.on('connection', (ws) => {
 });
 
 wss.on('close', () => clearInterval(heartbeat));
+
+// Stats de CPU y memoria emitidas cada segundo
+let prevCpus = os.cpus();
+
+function getCpuPercents() {
+    const curr = os.cpus();
+    const percents = curr.map((cpu, i) => {
+        const prev = prevCpus[i];
+        const prevTotal = Object.values(prev.times).reduce((a, b) => a + b, 0);
+        const currTotal = Object.values(cpu.times).reduce((a, b) => a + b, 0);
+        const totalDiff = currTotal - prevTotal;
+        const idleDiff = cpu.times.idle - prev.times.idle;
+        return totalDiff === 0 ? 0 : Math.round((1 - idleDiff / totalDiff) * 100);
+    });
+    prevCpus = curr;
+    return percents;
+}
+
+setInterval(() => {
+    if (wss.clients.size === 0) return;
+    const totalMem = os.totalmem();
+    const freeMem  = os.freemem();
+    const stats = {
+        type: 'stats',
+        cpu: {
+            model: os.cpus()[0].model,
+            cores: getCpuPercents(),
+        },
+        mem: {
+            total: totalMem,
+            used: totalMem - freeMem,
+            free: freeMem,
+        },
+        os: {
+            platform: os.platform(),
+            arch: os.arch(),
+            hostname: os.hostname(),
+            uptime: os.uptime(),
+        },
+    };
+    broadcast(wss, stats);
+}, 1000);
 
 const PORT = process.env.PORT ?? 3000;
 server.listen(PORT, () => {
